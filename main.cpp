@@ -14,50 +14,35 @@ using std::cout;
 using std::endl;
 using std::string;
 
-void _sigusr1(int sig);
+void _sigint(int sig);
+void _sigint2(int sig);
+void _sigalrm(int sig);
 
 int main(void) {
 
-    int status;
-    pid_t pid;
+    signal(SIGINT, _sigint);
+    signal(SIGALRM, _sigalrm);
 
-    signal(SIGUSR1, _sigusr1);
-
-    pid = fork();
-
-    switch(pid) {
-    case -1: {
-            perror("fork");
-            break;
-        }
-
-    case 0: {
-            cout << "Enfant créé (" << getpid() << ")" << endl;
-
-            cout << "Attente de 3 secondes..." << endl;
-            sleep(3);
-
-            cout << "Envoie du signal SIGUSR1 au père (" << getppid() << ")" << endl;
-            kill(getppid(), SIGUSR1);
-            exit(EXIT_SUCCESS);
-            break;
-        }
-
-    default: {
-            cout << "Parent (" << getpid() << ")" << endl;
-            pause();
-
-            do {
-                cout << "Attente de la fin du processus fils... " << endl;
-                waitpid(pid, &status, WUNTRACED);
-            } while(!WIFEXITED(status) && !WIFSIGNALED(status));
-        }
+    for(;;) {
+        cout << "." << endl;
+        sleep(1);
     }
 
-    cout << "Programme terminé !" << endl;
     return EXIT_SUCCESS;
 }
 
-void _sigusr1(int sig) {
-    cout << "Le père a reçu le signal SIGUSR1" << endl;
+void _sigint(int sig) {
+    cout << "Refaite la combinaison Ctrl-C avant 3 secondes pour quitter" << endl;
+    signal(SIGINT, _sigint2);
+    alarm(3);
+}
+
+void _sigint2(int sig) {
+    cout << "Fin du programme" << endl;
+    exit(EXIT_SUCCESS);
+}
+
+void _sigalrm(int sig) {
+    cout << "Les 3 secondes sont épuisées, le programme n'est pas terminé" << endl;
+    signal(SIGINT, _sigint);
 }
